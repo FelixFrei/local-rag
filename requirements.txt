@@ -1,0 +1,14 @@
+llama-index
+ipywidgets
+langchain
+torch
+transformers
+accelerate
+pypdf
+bitsandbytes
+scipy
+chromadb
+sentence-transformers
+qdrant_client
+
+
