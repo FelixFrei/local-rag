@@ -1,6 +1,6 @@
 llama-index
 ipywidgets
-langchain
+langchain-community
 torch
 transformers
 accelerate

@@ -3,7 +3,7 @@ import sys
 import torch
 import os
 
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from llama_index.embeddings import LangchainEmbedding
 from llama_index.llms import HuggingFaceLLM
 from llama_index.prompts import PromptTemplate
