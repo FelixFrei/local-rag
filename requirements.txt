@@ -2,7 +2,6 @@ llama-index
 ipywidgets
 langchain-community
 torch
-transformers
 accelerate
 pypdf
 bitsandbytes
@@ -10,5 +9,6 @@ scipy
 chromadb
 sentence-transformers
 qdrant_client
+streamlit
 
 
