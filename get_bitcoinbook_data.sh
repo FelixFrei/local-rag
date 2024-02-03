@@ -13,7 +13,7 @@ cd bitcoinbook
 mkdir -p ../data/bitcoinbook
 
 # Convert all AsciiDoc files to PDF and copy them to the output directory
-for file in *.asciidoc; do
+for file in *.adoc; do
  asciidoctor-pdf "$file"
 done
 
