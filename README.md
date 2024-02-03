@@ -12,10 +12,12 @@ Running AI models local brings a lot of dependencies and requirements with it de
 The text-generation-webui project from the oobabooga project has a well maintained setup script to install all the requirements and dependencies.
 Therefore, we use this project to ensure all the requirements are correctly installed. Since drivers and packages are changing fast, we not copy the installation script to this project.
 Instead we use the the oobabooga setup itself. So, you need to have a proper setup of oobabooga text-generation-webui.
+local-rag v1.0 runs with the text-generation-webui v1.7.
 
 ### Install text-generation-webui
 ``` 
 git clone https://github.com/oobabooga/text-generation-webui.git
+git checkout v1.7
 
 ``` 
 Follow the instructions here:
