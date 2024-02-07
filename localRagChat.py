@@ -65,11 +65,14 @@ try:
 except Exception as e:
     print('Error creating chroma_collection' + str(e))
 
-print('loading documents')
-try:
+
+data_loaded = False
+
+if not data_loaded:
     documents = SimpleDirectoryReader("./data/bitcoinbook/").load_data()
-except Exception as e:
-    print('Error loading documents' + str(e))
+    data_loaded = True
+else:
+    print("documents already loaded.")
 
 embed_model = LangchainEmbedding(
     HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
