@@ -58,11 +58,18 @@ llm = HuggingFaceLLM(
     model_kwargs={"torch_dtype": torch.float16, "load_in_8bit": True},
 )
 
+print('created chroma client')
+try:
+    chroma_client = chromadb.EphemeralClient()
+    chroma_collection = chroma_client.create_collection("bitcoinbook")
+except Exception as e:
+    print('Error creating chroma_collection' + str(e))
 
-chroma_client = chromadb.EphemeralClient()
-chroma_collection = chroma_client.create_collection("bitcoinbook")
-
-documents = SimpleDirectoryReader("./data/bitcoinbook/").load_data()
+print('loading documents')
+try:
+    documents = SimpleDirectoryReader("./data/bitcoinbook/").load_data()
+except Exception as e:
+    print('Error loading documents' + str(e))
 
 embed_model = LangchainEmbedding(
     HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
