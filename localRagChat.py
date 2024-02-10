@@ -20,10 +20,12 @@ from llama_index import ServiceContext
 from llama_index import VectorStoreIndex, download_loader
 from pathlib import Path
 
+import config
+
 # Define variable to hold llama2 weights naming
 name = "meta-llama/Llama-2-7b-chat-hf"
 # Set auth token variable from hugging face
-auth_token = '<YOUR_HUGGINGFACE_TOKEN>'
+auth_token = config.HUGGINGFACE_TOKEN
 
 
 @st.cache_resource
@@ -80,6 +82,13 @@ service_context = ServiceContext.from_defaults(
 # And set the service context
 set_global_service_context(service_context)
 
+if "messages" not in st.session_state.keys():  # Initialize the chat messages history
+    st.session_state.messages = [
+        {"role": "assistant",
+         "content": "Frag etwas zu den Geschäftsberichten von den Schweizer Kantonalbanken TKB, SGKB, AKB und BLKB"}
+    ]
+
+
 # Add file upload functionality
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
@@ -111,12 +120,6 @@ if uploaded_file:
 
     # Create centered main title
     st.title('🦙 Llama 2 - RAG')
-
-    if "messages" not in st.session_state.keys():  # Initialize the chat messages history
-        st.session_state.messages = [
-            {"role": "assistant",
-             "content": "Frag etwas zu den Geschäftsberichten von den Schweizer Kantonalbanken TKB, SGKB, AKB und BLKB"}
-        ]
 
     if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
         st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)

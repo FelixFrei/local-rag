@@ -18,3 +18,4 @@ class Config:
         self.SYSTEM_PROMPT = os.getenv('SYSTEM_PROMPT')
         self.TEMPERATURE = os.getenv('TEMPERATURE')
         self.INPUT_DIR = os.getenv('INPUT_DIR')
+        self.HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
