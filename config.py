@@ -19,3 +19,4 @@ class Config:
         self.TEMPERATURE = os.getenv('TEMPERATURE')
         self.INPUT_DIR = os.getenv('INPUT_DIR')
         self.HUGGINGFACE_TOKEN = os.getenv('HUGGINGFACE_TOKEN')
+        self.LLM_MODEL = os.getenv('LLM_MODEL')
