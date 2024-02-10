@@ -1,146 +1,138 @@
-import logging
-import sys
-import torch
-import os
+# Import streamlit for app dev
 import streamlit as st
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from llama_index.embeddings import LangchainEmbedding
+# Import transformer classes for generation
+from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
+# Import torch for datatype attributes
+import torch
+# Import the prompt wrapper...but for llama index
+from llama_index.prompts.prompts import SimpleInputPrompt
+# Import the llama index HF Wrapper
 from llama_index.llms import HuggingFaceLLM
-from llama_index.prompts import PromptTemplate
-from llama_index import VectorStoreIndex, set_global_service_context, ServiceContext, SimpleDirectoryReader, \
-    load_index_from_storage
-import chromadb
-from llama_index.vector_stores import ChromaVectorStore
-from llama_index.storage.storage_context import StorageContext
-import logging
-from config import Config
+# Bring in embeddings wrapper
+from llama_index.embeddings import LangchainEmbedding
+# Bring in HF embeddings - need these to represent document chunks
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
+# Bring in stuff to change service context
+from llama_index import set_global_service_context
+from llama_index import ServiceContext
+# Import deps to load documents
+from llama_index import VectorStoreIndex, download_loader
+from pathlib import Path
 
-os.environ['NUMEXPR_MAX_THREADS'] = '4'
-os.environ['NUMEXPR_NUM_THREADS'] = '2'
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+# Define variable to hold llama2 weights naming
+name = "meta-llama/Llama-2-7b-chat-hf"
+# Set auth token variable from hugging face
+auth_token = '<YOUR_HUGGINGFACE_TOKEN>'
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
+@st.cache_resource
+def get_tokenizer_model():
+    # Create tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(name, cache_dir='./model/', token=auth_token)
 
-# Model names (make sure you have access on HF)
-LLAMA2_7B = "meta-llama/Llama-2-7b-hf"
-LLAMA2_7B_CHAT = "meta-llama/Llama-2-7b-chat-hf"
-LLAMA2_13B = "meta-llama/Llama-2-13b-hf"
-LLAMA2_13B_CHAT = "meta-llama/Llama-2-13b-chat-hf"
-LLAMA2_70B = "meta-llama/Llama-2-70b-hf"
-LLAMA2_70B_CHAT = "meta-llama/Llama-2-70b-chat-hf"
+    # Create model
+    model = AutoModelForCausalLM.from_pretrained(name, cache_dir='./model/'
+                                                 , token=auth_token, torch_dtype=torch.float16,
+                                                 rope_scaling={"type": "dynamic", "factor": 2}, load_in_8bit=True)
 
-selected_model = LLAMA2_7B_CHAT
+    return tokenizer, model
 
-SYSTEM_PROMPT = """You are an AI assistant that answers questions in a friendly manner, based on the given source documents. Here are some rules you always follow:
-- Generate human readable output, avoid creating output with gibberish text.
-- Generate only the requested output, don't include any other language before or after the requested output.
-- Never say thank you, that you are happy to help, that you are an AI agent, etc. Just answer directly.
-- Generate professional language typically used in business documents in North America.
-- Never generate offensive or foul language.
+
+tokenizer, model = get_tokenizer_model()
+
+# Create a system prompt
+system_prompt = """<s>[INST] <<SYS>>
+You are a helpful, respectful and honest assistant. Always answer as
+helpfully as possible, while being safe. Your answers should not include
+any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content.
+Please ensure that your responses are socially unbiased and positive in nature.
+
+If a question does not make any sense, or is not factually coherent, explain
+why instead of answering something not correct. If you don't know the answer
+to a question, please don't share false information.
+
+Your goal is to provide answers relating to the financial performance of
+the company.<</SYS>>
 """
+# Throw together the query wrapper
+query_wrapper_prompt = SimpleInputPrompt("{query_str} [/INST]")
 
-query_wrapper_prompt = PromptTemplate(
-    "[INST]<<SYS>>\n" + SYSTEM_PROMPT + "<</SYS>>\n\n{query_str}[/INST] "
+# Create a HF LLM using the llama index wrapper
+llm = HuggingFaceLLM(context_window=4096,
+                     max_new_tokens=256,
+                     system_prompt=system_prompt,
+                     query_wrapper_prompt=query_wrapper_prompt,
+                     model=model,
+                     tokenizer=tokenizer)
+
+# Create and dl embeddings instance
+embeddings = LangchainEmbedding(
+    HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 )
 
-llm = HuggingFaceLLM(
-    context_window=4096,
-    max_new_tokens=2048,
-    generate_kwargs={"temperature": 0.0, "do_sample": False},
-    query_wrapper_prompt=query_wrapper_prompt,
-    tokenizer_name=selected_model,
-    model_name=selected_model,
-    device_map="auto",
-    # change these settings below depending on your GPU
-    model_kwargs={"torch_dtype": torch.float16, "load_in_8bit": True},
-)
-
-print('created chroma client')
-try:
-    chroma_client = chromadb.EphemeralClient()
-    chroma_collection = chroma_client.create_collection("bitcoinbook")
-except Exception as e:
-    print('Error creating chroma_collection' + str(e))
-
-
-data_loaded = False
-
-if not data_loaded:
-    documents = SimpleDirectoryReader("./data/bitcoinbook/").load_data()
-    data_loaded = True
-else:
-    print("documents already loaded.")
-
-embed_model = LangchainEmbedding(
-    HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
-)
-
+# Create new service context instance
 service_context = ServiceContext.from_defaults(
-     llm=llm, embed_model=embed_model
+    chunk_size=1024,
+    llm=llm,
+    embed_model=embeddings
 )
+# And set the service context
 set_global_service_context(service_context)
 
-try:
-    db = chromadb.PersistentClient(path="./storage/chroma")
-    chroma_collection = db.get_or_create_collection("bitcoinbook")
+# Add file upload functionality
+uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
-    vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+# Load documents if a file is uploaded
+if uploaded_file:
+    # Save the uploaded file to a temporary location
+    with open("temp.pdf", "wb") as temp_file:
+        temp_file.write(uploaded_file.read())
 
-    # if index exists, load it
-    if os.path.exists("./storage/chroma/bitcoinbook"):
-        index = load_index_from_storage("./storage/chroma/bitcoinbook")
-        print('index from storage loaded')
-    else:
-        index = VectorStoreIndex.from_documents(documents, storage_context=storage_context,
-                                                service_context=service_context)
-        print('index generated and persisted to disk')
+    # Download PDF Loader
+    PyMuPDFReader = download_loader("PyMuPDFReader")
+    # Create PDF Loader
+    loader = PyMuPDFReader()
+    # Load documents
+    documents = loader.load(file_path=Path("temp.pdf"))
 
-    query_engine = index.as_query_engine(
-        verbose=True,
-    )
+    # New code to convert PosixPath objects to strings
+    for document in documents:
+        if 'file_path' in document.metadata:
+            document.metadata['file_path'] = str(document.metadata['file_path'])
 
+    # Create an index - we'll be able to query this in a sec
+    index = VectorStoreIndex.from_documents(documents)
+    # Setup index query engine using LLM
+    query_engine = index.as_query_engine()
 
-except Exception as e:
-    print('Error loading index or creating new index and persisted to disk' + str(e))
+    # Remove the temporary file
+    Path("temp.pdf").unlink()
 
+    # Create centered main title
+    st.title('🦙 Llama 2 - RAG')
 
-config = Config()
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=str(config.LOG_LEVEL))
-log = logging.getLogger(__name__)
-log.setLevel(config.LOG_LEVEL_INT)
+    if "messages" not in st.session_state.keys():  # Initialize the chat messages history
+        st.session_state.messages = [
+            {"role": "assistant",
+             "content": "Frag etwas zu den Geschäftsberichten von den Schweizer Kantonalbanken TKB, SGKB, AKB und BLKB"}
+        ]
 
-st.set_page_config(page_title=config.PAGE_TITLE, page_icon="🦙", layout="centered",
-                   initial_sidebar_state="auto", menu_items=None)
+    if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
+        st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
 
+    if prompt := st.chat_input("Your question"):  # Prompt for user input and save to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-st.title(config.PAGE_TITLE)
-st.info(config.PAGE_INFO, icon="📃")
+    for message in st.session_state.messages:  # Display the prior chat messages
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
 
-if "messages" not in st.session_state.keys():  # Initialize the chat messages history
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Frag etwas zu den Geschäftsberichten von den Schweizer Kantonalbanken TKB, SGKB, AKB und BLKB"}
-    ]
-
-
-if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
-    st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
-
-if prompt := st.chat_input("Your question"):  # Prompt for user input and save to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-for message in st.session_state.messages:  # Display the prior chat messages
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-# If last message is not from assistant, generate a new response
-if st.session_state.messages[-1]["role"] != "assistant":
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response = st.session_state.chat_engine.chat(prompt)
-            st.write(response.response)
-            message = {"role": "assistant", "content": response.response}
-            st.session_state.messages.append(message)  # Add response to message history
+    # If last message is not from assistant, generate a new response
+    if st.session_state.messages[-1]["role"] != "assistant":
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                response = st.session_state.chat_engine.chat(prompt)
+                st.write(response.response)
+                message = {"role": "assistant", "content": response.response}
+                st.session_state.messages.append(message)  # Add response to message history
