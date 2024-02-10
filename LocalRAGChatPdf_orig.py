@@ -20,15 +20,10 @@ from llama_index import ServiceContext
 from llama_index import VectorStoreIndex, download_loader
 from pathlib import Path
 
-from config import Config
-
-config = Config()
-
 # Define variable to hold llama2 weights naming
-name = config.LLM_MODEL
-
+name = "meta-llama/Llama-2-7b-chat-hf"
 # Set auth token variable from hugging face
-auth_token = config.HUGGINGFACE_TOKEN
+auth_token = '<YOUR_HUGGINGFACE_TOKEN>'
 
 
 @st.cache_resource
@@ -47,8 +42,19 @@ def get_tokenizer_model():
 tokenizer, model = get_tokenizer_model()
 
 # Create a system prompt
-system_prompt = "<s>[INST] <<SYS>>" + config.SYSTEM_PROMPT + "<</SYS>>"
+system_prompt = """<s>[INST] <<SYS>>
+You are a helpful, respectful and honest assistant. Always answer as
+helpfully as possible, while being safe. Your answers should not include
+any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content.
+Please ensure that your responses are socially unbiased and positive in nature.
 
+If a question does not make any sense, or is not factually coherent, explain
+why instead of answering something not correct. If you don't know the answer
+to a question, please don't share false information.
+
+Your goal is to provide answers relating to the financial performance of
+the company.<</SYS>>
+"""
 # Throw together the query wrapper
 query_wrapper_prompt = SimpleInputPrompt("{query_str} [/INST]")
 
@@ -73,8 +79,6 @@ service_context = ServiceContext.from_defaults(
 )
 # And set the service context
 set_global_service_context(service_context)
-
-
 
 # Add file upload functionality
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
@@ -106,29 +110,21 @@ if uploaded_file:
     Path("temp.pdf").unlink()
 
     # Create centered main title
-    st.title(config.PAGE_TITLE)
+    st.title('🦙 Llama 2 - RAG')
+    # Create a text input box for the user
+    prompt = st.text_input('Input your prompt here')
 
-    if "messages" not in st.session_state.keys():  # Initialize the chat messages history
-        st.session_state.messages = [
-            {"role": "assistant",
-             "content": "Just ask me anything about the uploaded document!"}
-        ]
+    # If the user hits enter
+    if prompt:
+        response = query_engine.query(prompt)
+        # ...and write it out to the screen
+        # Extract and print the response text
+        response_text = response.response
+        st.write(response_text)
 
-    if "chat_engine" not in st.session_state.keys():  # Initialize the chat engine
-        st.session_state.chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
-
-    if prompt := st.chat_input("Your question"):  # Prompt for user input and save to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
-    for message in st.session_state.messages:  # Display the prior chat messages
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-
-    # If last message is not from assistant, generate a new response
-    if st.session_state.messages[-1]["role"] != "assistant":
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                response = st.session_state.chat_engine.chat(prompt)
-                st.write(response.response)
-                message = {"role": "assistant", "content": response.response}
-                st.session_state.messages.append(message)  # Add response to message history
+        # Display raw response object
+        with st.expander('Response Object'):
+            st.write(response)
+        # Display source text
+        with st.expander('Source Text'):
+            st.write(response.get_formatted_sources())
