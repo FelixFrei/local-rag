@@ -20,10 +20,13 @@ from llama_index import ServiceContext
 from llama_index import VectorStoreIndex, download_loader
 from pathlib import Path
 
-import config
+from config import Config
+
+config = Config()
 
 # Define variable to hold llama2 weights naming
 name = "meta-llama/Llama-2-7b-chat-hf"
+
 # Set auth token variable from hugging face
 auth_token = config.HUGGINGFACE_TOKEN
 
