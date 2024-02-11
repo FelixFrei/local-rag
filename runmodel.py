@@ -67,11 +67,11 @@ def launch_model(file_name):
 if __name__ == "__main__":
     # Verifies we are in a conda environment
     check_env()
-    file_to_run = "localRag.py"
+    file_to_run = "localRagChat.py"
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--update', action='store_true', help='Update the environment.')
 
-    parser.add_argument('--script', type=str, choices=['localRag.py'],
+    parser.add_argument('--script', type=str, choices=['localRag.py', 'localRagChat.py'],
                         help='Set the file which should be used.')
 
     args, _ = parser.parse_known_args()
