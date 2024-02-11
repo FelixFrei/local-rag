@@ -61,7 +61,7 @@ def update_requirements(initial_installation=False):
 
 
 def launch_model(file_name):
-    run_cmd("python " + file_name, environment=True)
+    run_cmd("streamlit run " + file_name, environment=True)
 
 
 if __name__ == "__main__":
