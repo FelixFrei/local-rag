@@ -11,6 +11,7 @@ sentence-transformers
 qdrant_client
 streamlit
 transformers
+python-dotenv
 
 
 
