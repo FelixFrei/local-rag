@@ -30,6 +30,12 @@ name = config.LLM_MODEL
 # Set auth token variable from hugging face
 auth_token = config.HUGGINGFACE_TOKEN
 
+st.set_page_config(page_title=config.PAGE_TITLE, page_icon="swisscom-logo-klein.png", layout="centered",
+                   initial_sidebar_state="auto", menu_items=None)
+
+logo = "swisscom_logo.png"
+st.image(logo, use_column_width=True)
+
 
 @st.cache_resource
 def get_tokenizer_model():
@@ -104,9 +110,6 @@ if uploaded_file:
 
     # Remove the temporary file
     Path("temp.pdf").unlink()
-
-    # Create centered main title
-    st.title(config.PAGE_TITLE)
 
     if "messages" not in st.session_state.keys():  # Initialize the chat messages history
         st.session_state.messages = [
