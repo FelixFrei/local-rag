@@ -1,4 +1,4 @@
-llama-index
+llama-index==0.9.39
 ipywidgets
 langchain-community
 torch
