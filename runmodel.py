@@ -24,14 +24,9 @@ def check_env():
         sys.exit(1)
 
     # Ensure this is a new environment and not the base environment
-    if os.environ["CONDA_DEFAULT_ENV"] == "base":
+    if os.environ.get("CONDA_DEFAULT_ENV") == "base":
         print("Create an environment for this project and activate it. Exiting...")
         sys.exit(1)
-
-
-def clear_cache():
-    run_cmd("conda clean -a -y", environment=True)
-    run_cmd("python -m pip cache purge", environment=True)
 
 def run_cmd(cmd, assert_success=False, environment=False, capture_output=False, env=None):
     # Use the conda environment
@@ -54,35 +49,32 @@ def run_cmd(cmd, assert_success=False, environment=False, capture_output=False, 
     return result
 
 
-def update_requirements(initial_installation=False):
-
+def update_requirements():
     # Install/update the project requirements
     run_cmd("python -m pip install -r requirements.txt --upgrade", assert_success=True, environment=True)
 
 
 def launch_model(file_name):
-    run_cmd("streamlit run " + file_name, environment=True)
+    run_cmd("streamlit run " + file_name, assert_success=True, environment=True)
 
 
 if __name__ == "__main__":
     # Verifies we are in a conda environment
     check_env()
     file_to_run = "localRagChat.py"
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser()
     parser.add_argument('--update', action='store_true', help='Update the environment.')
 
     parser.add_argument('--script', type=str, choices=['localRag.py', 'localRagChat.py'],
                         help='Set the file which should be used.')
 
-    args, _ = parser.parse_known_args()
+    args = parser.parse_args()
 
-    for i in range(1, len(sys.argv)):
-        if sys.argv[i] == '--update':
-            print("Update requirements!")
-            update_requirements()
-        if sys.argv[i] == '--script':
-            file_to_run = args.script
+    if args.update:
+        print("Update requirements!")
+        update_requirements()
+    if args.script:
+        file_to_run = args.script
 
     # Launch the RAG setup
     launch_model(file_to_run)
-

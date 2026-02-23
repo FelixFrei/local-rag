@@ -7,8 +7,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from llama_index.embeddings import LangchainEmbedding
 from llama_index.llms import HuggingFaceLLM
 from llama_index.prompts import PromptTemplate
-from llama_index import VectorStoreIndex, set_global_service_context, ServiceContext, SimpleDirectoryReader, \
-    load_index_from_storage
+from llama_index import VectorStoreIndex, set_global_service_context, ServiceContext, SimpleDirectoryReader
 import chromadb
 from llama_index.vector_stores import ChromaVectorStore
 from llama_index.storage.storage_context import StorageContext
@@ -55,12 +54,6 @@ llm = HuggingFaceLLM(
     model_kwargs={"torch_dtype": torch.float16, "load_in_8bit": True},
 )
 
-
-chroma_client = chromadb.EphemeralClient()
-chroma_collection = chroma_client.create_collection("bitcoinbook")
-
-documents = SimpleDirectoryReader("./data/bitcoinbook/").load_data()
-
 embed_model = LangchainEmbedding(
     HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 )
@@ -77,13 +70,26 @@ try:
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
-    # if index exists, load it
-    if os.path.exists("./storage/chroma/bitcoinbook"):
-        index = load_index_from_storage("./storage/chroma/bitcoinbook")
-        print('index from storage loaded')
+    if chroma_collection.count() > 0:
+        index = VectorStoreIndex.from_vector_store(
+            vector_store=vector_store,
+            service_context=service_context,
+        )
+        print('index loaded from existing Chroma collection')
     else:
-        index = VectorStoreIndex.from_documents(documents, storage_context=storage_context,
-                                                service_context=service_context)
+        input_dir = "./data/bitcoinbook/"
+        if not os.path.isdir(input_dir):
+            raise FileNotFoundError(f"Missing input directory: {input_dir}")
+
+        documents = SimpleDirectoryReader(input_dir).load_data()
+        if not documents:
+            raise RuntimeError(f"No documents found in {input_dir}")
+
+        index = VectorStoreIndex.from_documents(
+            documents,
+            storage_context=storage_context,
+            service_context=service_context,
+        )
         print('index generated and persisted to disk')
 
     query_engine = index.as_query_engine(
@@ -93,6 +99,7 @@ try:
 
 except Exception as e:
     print('Error loading index or creating new index and persisted to disk' + str(e))
+    sys.exit(1)
 
 
 while True:

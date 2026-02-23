@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # This script is used to run the model in a linux environment.
 # run with: ./run_linux.sh --update when you need to setup the python environment
@@ -12,7 +13,7 @@ INSTALL_ENV_DIR="../text-generation-webui/installer_files/env"
 # check if conda environment was actually created
 if [ ! -e "$INSTALL_ENV_DIR/bin/python" ]; then
     echo "Conda environment is empty."
-    exit
+    exit 1
 fi
 
 # environment isolation
@@ -27,4 +28,4 @@ source "$CONDA_ROOT_PREFIX/etc/profile.d/conda.sh" # otherwise conda complains a
 conda activate "$INSTALL_ENV_DIR"
 
 # setup installer env
-python runmodel.py $@
+python runmodel.py "$@"

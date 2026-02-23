@@ -1,5 +1,4 @@
 llama-index==0.9.39
-ipywidgets
 langchain-community
 torch
 accelerate
@@ -8,10 +7,8 @@ bitsandbytes
 scipy
 chromadb
 sentence-transformers
-qdrant_client
 streamlit
 transformers
 python-dotenv
-
 
 

@@ -1,5 +1,6 @@
 # Import streamlit for app dev
 import streamlit as st
+import tempfile
 
 # Import transformer classes for generation
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -84,26 +85,38 @@ uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
 # Load documents if a file is uploaded
 if uploaded_file:
+    current_file_id = f"{uploaded_file.name}:{uploaded_file.size}"
+    if st.session_state.get("active_file_id") != current_file_id:
+        st.session_state.active_file_id = current_file_id
+        st.session_state.pop("messages", None)
+        st.session_state.pop("chat_engine", None)
+
+    temp_pdf_path = None
+
     # Save the uploaded file to a temporary location
-    with open("temp.pdf", "wb") as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file.write(uploaded_file.read())
+        temp_pdf_path = Path(temp_file.name)
 
-    # Download PDF Loader
-    PyMuPDFReader = download_loader("PyMuPDFReader")
-    # Create PDF Loader
-    loader = PyMuPDFReader()
-    # Load documents
-    documents = loader.load(file_path=Path("temp.pdf"))
+    try:
+        # Download PDF Loader
+        PyMuPDFReader = download_loader("PyMuPDFReader")
+        # Create PDF Loader
+        loader = PyMuPDFReader()
+        # Load documents
+        documents = loader.load(file_path=temp_pdf_path)
 
-    # New code to convert PosixPath objects to strings
-    for document in documents:
-        if 'file_path' in document.metadata:
-            document.metadata['file_path'] = str(document.metadata['file_path'])
+        # New code to convert PosixPath objects to strings
+        for document in documents:
+            if 'file_path' in document.metadata:
+                document.metadata['file_path'] = str(document.metadata['file_path'])
 
-    # Create an index - we'll be able to query this in a sec
-    index = VectorStoreIndex.from_documents(documents)
-    # Remove the temporary file
-    Path("temp.pdf").unlink()
+        # Create an index - we'll be able to query this in a sec
+        index = VectorStoreIndex.from_documents(documents)
+    finally:
+        # Remove the temporary file
+        if temp_pdf_path and temp_pdf_path.exists():
+            temp_pdf_path.unlink()
 
     if "messages" not in st.session_state.keys():  # Initialize the chat messages history
         st.session_state.messages = [

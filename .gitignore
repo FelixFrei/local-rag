@@ -169,3 +169,9 @@ cython_debug/
 # Local archives
 *.bundle
 *.tar.gz
+
+# Local runtime artifacts
+data/
+model/
+storage/
+temp.pdf
