@@ -2,7 +2,7 @@
 import streamlit as st
 
 # Import transformer classes for generation
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextStreamer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 # Import torch for datatype attributes
 import torch
 # Import the prompt wrapper...but for llama index
@@ -30,11 +30,8 @@ name = config.LLM_MODEL
 # Set auth token variable from hugging face
 auth_token = config.HUGGINGFACE_TOKEN
 
-st.set_page_config(page_title=config.PAGE_TITLE, page_icon="swisscom-logo-klein.png", layout="centered",
+st.set_page_config(page_title=config.PAGE_TITLE, page_icon=":page_facing_up:", layout="centered",
                    initial_sidebar_state="auto", menu_items=None)
-
-logo = "swisscom_logo.png"
-st.image(logo, use_column_width=True)
 
 
 @st.cache_resource
@@ -105,9 +102,6 @@ if uploaded_file:
 
     # Create an index - we'll be able to query this in a sec
     index = VectorStoreIndex.from_documents(documents)
-    # Setup index query engine using LLM
-    query_engine = index.as_query_engine()
-
     # Remove the temporary file
     Path("temp.pdf").unlink()
 

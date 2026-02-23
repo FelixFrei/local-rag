@@ -1,81 +1,78 @@
 # local-rag
-Retrieval-Augmented Generation (RAG) based on LlamaIndex for running on local LLMs.
 
+Minimal local Retrieval-Augmented Generation (RAG) examples with LlamaIndex and Hugging Face models.
 
-## RAG with Llamaindex und Llama2
+## Project Status
 
-Using Llamaindex and Llama2 to build a RAG setup.
-Based on Llamaindex example: https://docs.llamaindex.ai/en/latest/index.html
+This repository is in archive mode.
+It is kept as a reference implementation and is not under active feature development.
 
-## Prerequisites
-Running AI models local brings a lot of dependencies and requirements with it depending on the operating system, GPU, CPU and the model itself.
-The text-generation-webui project from the oobabooga project has a well maintained setup script to install all the requirements and dependencies.
-Therefore, we use this project to ensure all the requirements are correctly installed. Since drivers and packages are changing fast, we not copy the installation script to this project.
-Instead we use the the oobabooga setup itself. So, you need to have a proper setup of oobabooga text-generation-webui.
-local-rag v1.0 runs with the text-generation-webui v1.7.
+## Repository Contents
 
-### Install text-generation-webui
-``` 
-git clone https://github.com/oobabooga/text-generation-webui.git
-git checkout v1.7
+- `localRag.py`: terminal-based RAG example for local documents.
+- `localRagChat.py`: Streamlit app for chatting with an uploaded PDF.
+- `runmodel.py`: helper launcher for update/start flows.
+- `run_linux.sh`: Linux wrapper for environments based on `text-generation-webui`.
+- `config.py` + `.env_example`: runtime configuration via environment variables.
+- `LocalRAGChatPdf_orig.py`: legacy reference version.
 
-``` 
-Follow the instructions here:
-https://github.com/oobabooga/text-generation-webui
+## Requirements
 
+- Python 3.10+
+- Hugging Face token for gated models (for example Llama 2)
+- Optional GPU setup (CUDA/ROCm) depending on model size
+- Optional local `text-generation-webui` checkout for `run_linux.sh`
 
-### LLama2
-For the use of LLama2 model you need register on https://ai.meta.com/.
-When you have an account you can download  models from https://ai.meta.com/download/llama2. What in our case is not neeeded since we use the huggingface platform.
+Expected structure when using `run_linux.sh`:
 
-### Huggingface
-You need a huggingface account. Since we want to use the llama2 model we need to setup the hugingface account with the same e-address as the meta-ai account.
-In addition you need to install the huggingface-cli and login to the huggingface platform.
-``` 
-pip install --upgrade huggingface_hub
-``` 
-The destination directory where huggingface-cli is installed must be in the PATH variable.
-/home/user/.local/bin
+```text
+~/projects/
+  local-rag/
+  text-generation-webui/
+```
 
+## Quick Start
 
-``` 
-huggingface-cli login
-``` 
-On the huggingface platform you need to create a new token for the login
+1. Create and activate a Python environment.
+2. Install dependencies:
 
+```bash
+pip install -r requirements.txt
+```
 
-## Install local-rag
+3. Configure environment variables:
 
+```bash
+cp .env_example .env
+```
 
-Ensure both project are in the same folder.
-``` 
-git clone https://github.com/FelixFrei/local-rag.git
-git clone https://github.com/oobabooga/text-generation-webui.git
+4. Optional sample data download:
 
-
-ubuntu@host:~$ ls -la
-drwxrwxr-x  7 ubuntu ubuntu      4096 Jan 20 05:19 local-rag
-drwxrwxr-x 23 ubuntu ubuntu      4096 Jan 20 05:19 text-generation-webui
-
-``` 
-
-Setup the data example.
-``` 
+```bash
 ./get_bitcoinbook_data.sh
-
-``` 
-
-
-## run the script
-When running the first time, you need to use the argument --update to install or update the requirements and driver.
-As default the script will run the localRag.py script. You can change this by using the argument --script <scriptname>.
-
 ```
 
-huggingface-cli login
+## Run
 
+Streamlit app:
 
+```bash
+streamlit run localRagChat.py
+```
+
+Linux wrapper:
+
+```bash
 ./run_linux.sh --update
-
+./run_linux.sh --script localRagChat.py
 ```
 
+## Notes
+
+- First model startup may take several minutes.
+- Dependencies are intentionally lightweight in this repo, but model/runtime compatibility is environment-specific.
+- For archival reproducibility, pin exact versions in your local environment before long-term reuse.
+
+## License
+
+MIT. See `LICENSE`.
